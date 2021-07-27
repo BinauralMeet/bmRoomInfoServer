@@ -7,7 +7,7 @@ import {
   isWebSocketPingEvent,
   WebSocket,
 } from "https://deno.land/std/ws/mod.ts"
-import {MessageType, Message, RoomInfo} from '../../room-info/src/models/api/Message.ts'
+import {MessageType, Message, RoomInfo} from './Message.ts'
 
 const sockets: WebSocket[] = []
 class Room{
