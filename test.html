@@ -1,0 +1,31 @@
+<html>
+    <head>
+        <script>
+            window.onload = ()=>{
+                const ws = new WebSocket('ws://localhost:8080')                
+
+                const outEle = document.getElementById("output")
+                const inEle = document.getElementById("input")
+                const sendEle = document.getElementById("send")
+                outEle.textContent += 'test content\n'
+                sendEle.onclick = () => {
+                    const inEle = document.getElementById("input")
+                    ws.send(inEle.value)
+                }
+
+                ws.onmessage = (ev) => {
+                    outEle.textContent += ev.data
+                }
+                ws.onopen = () => {
+                    ws.send('web socket opened.\n')
+                } 
+
+            }
+        </script>
+    </head>
+    <body>
+        <textarea id="input"></textarea><br>
+        <button id="send"> send </button>
+        <div id="output" style="white-space: pre-wrap;">output comes to below:&#10;</div>        
+    </body>
+</html>
