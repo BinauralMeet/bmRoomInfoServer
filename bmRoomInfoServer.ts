@@ -25,6 +25,9 @@ class Rooms{
     this.rooms.set(name, create)
     return create
   }
+  clear(){
+    this.rooms = new Map()
+  }
 }
 const rooms = new Rooms()
 
@@ -58,6 +61,9 @@ async function handleWs(sock: WebSocket) {
             v:JSON.stringify(infos)
           }
           sock.send(JSON.stringify(msg))
+        }else if (msg.t === MessageType.CLEAR){
+          rooms.clear()
+          sockets.forEach(s => s!==sock && s.send(ev))
         }else{
           //  forward message to others
           sockets.forEach(s => s!==sock && s.send(ev))

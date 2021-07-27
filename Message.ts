@@ -49,7 +49,8 @@ export const MessageType = {
   REMOVE_PARTICIPANT: 'del_p',
   UPDATE_PARTICIPANT: 'update_p',
   UPDATE_CONTENTS: 'update_c',
-  ALL_INFOS: 'all_i',          //  server send when requrested.
+  ALL_INFOS: 'all_i',           //  server send when requrested.
+  CLEAR: 'clear',               //  clear server's info.
 }
 
 export interface Message {
