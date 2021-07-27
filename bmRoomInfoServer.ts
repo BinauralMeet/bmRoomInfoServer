@@ -34,7 +34,7 @@ const rooms = new Rooms()
 
 async function handleWs(sock: WebSocket) {
   sockets.push(sock)
-  console.log("socket connected!");
+  console.log(`New connection starts. we have ${sockets.length} sockets.`);
   try {
     for await (const ev of sock) {
       if (typeof ev === "string") {
@@ -92,7 +92,7 @@ async function handleWs(sock: WebSocket) {
           console.error('sock to close not found.')
         }
         const { code, reason } = ev;
-        console.log("ws:Close", code, reason);
+        console.log(`ws:Closed. ${sockets.length} sockets remain`, code, reason);
       }
     }
   } catch (err) {
