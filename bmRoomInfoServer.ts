@@ -1,6 +1,6 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
 import { serve } from "https://deno.land/std/http/server.ts"
-//  import { serveTLS } from "https://deno.land/std/http/server.ts"
+import { serveTLS } from "https://deno.land/std/http/server.ts"
 import {
   acceptWebSocket,
   isWebSocketCloseEvent,
@@ -107,8 +107,10 @@ async function handleWs(sock: WebSocket) {
 if (import.meta.main) {
   /** websocket echo server */
   const port = Deno.args[0] || "7010";
+  const TLS = Deno.args[1] || false;
   console.log(`websocket server is running on :${port}`);
-  for await (const req of serve(`:${port}`)) {
+  for await (const req of TLS ? serve(`:${port}`) 
+    : serveTLS({port:443, certFile:'./host.crt', keyFile:'./host.key'})) {
     const { conn, r: bufReader, w: bufWriter, headers } = req;
     acceptWebSocket({
       conn,
