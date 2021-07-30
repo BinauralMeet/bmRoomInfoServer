@@ -110,7 +110,7 @@ if (import.meta.main) {
   const TLS = Deno.args[1] || false;
   console.log(`Websocket server is running on :${port}${TLS ? ' with TLS' : ''}.`);
   for await (const req of (
-    TLS ? serveTLS({port:443, certFile:'./host.crt', keyFile:'./host.key'}) 
+    TLS ? serveTLS({port:Number(port), certFile:'./host.crt', keyFile:'./host.key'}) 
       : serve(`:${port}`)
     )) {
     const { conn, r: bufReader, w: bufWriter, headers } = req;
