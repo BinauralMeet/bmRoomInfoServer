@@ -13,6 +13,7 @@ const sockets: WebSocket[] = []
 class Room{
   participants:Map<string, string> = new Map()
   contents:Map<string, string> = new Map()
+  properties: Map<string, string> = new Map()
 }
 class Rooms{
   rooms:Map<string, Room> = new Map()
@@ -26,7 +27,10 @@ class Rooms{
     return create
   }
   clear(){
-    this.rooms = new Map()
+    this.rooms.forEach(room => {
+      room.contents = new Map()
+      room.participants = new Map()
+    })
   }
 }
 const rooms = new Rooms()
