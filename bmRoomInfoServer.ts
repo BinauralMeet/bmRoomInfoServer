@@ -9,11 +9,13 @@ import {
 } from "https://deno.land/std/ws/mod.ts"
 import {MessageType, Message, RoomInfo} from './Message.ts'
 
-const sockets: WebSocket[] = []
+const viewerSocks: WebSocket[] = []
 class Room{
   participants:Map<string, string> = new Map()
   contents:Map<string, string> = new Map()
   properties: Map<string, string> = new Map()
+  socks: WebSocket[] = []
+  show = false
 }
 class Rooms{
   rooms:Map<string, Room> = new Map()
@@ -37,40 +39,53 @@ const rooms = new Rooms()
 
 
 async function handleWs(sock: WebSocket) {
-  sockets.push(sock)
-  console.log(`New connection starts. we have ${sockets.length} sockets.`);
+  viewerSocks.push(sock)
+  console.log(`New connection starts. we have ${viewerSocks.length} viewerSocks.`);
   try {
     for await (const ev of sock) {
       if (typeof ev === "string") {
         // text message.
         //  console.log("ws:Text", ev);
         const msg = JSON.parse(ev) as Message
-        if (msg.t === MessageType.REQUEST){
-          //  send all stored contents
+        if (msg.t === MessageType.REQUEST){ //  send all stored contents
           const infos: RoomInfo[] = []
           rooms.rooms.forEach((room, name) => {
-            const roomInfo:RoomInfo = {r: name, ps:[], cs:[]}
-            room.participants.forEach((value, pid)=>{
-              roomInfo.ps.push({p: pid, v:value})
+            if (!room.show) { return }
+            infos.push({r: name,
+              ps:Array.from(room.participants.entries()).map(p => ({p: p[0], v: p[1]})),
+              cs:Array.from(room.contents.entries()).map(c => ({p:c[0], v:c[1]}))
             })
-            room.contents.forEach((value, pid)=>{
-              roomInfo.cs.push({p: pid, v:value})
-            })
-            infos.push(roomInfo)
           })
-          const msg:Message = {
-            t:MessageType.ALL_INFOS,
-            r:'',
-            p:'',
-            v:JSON.stringify(infos)
-          }
+          const msg:Message = { t:MessageType.ALL_INFOS, r:'', p:'', v:JSON.stringify(infos) }
           sock.send(JSON.stringify(msg))
         }else if (msg.t === MessageType.CLEAR){
           rooms.clear()
-          sockets.forEach(s => s!==sock && s.send(ev))
+          viewerSocks.forEach(s => s!==sock && s.send(ev))
+        }else if (msg.t === MessageType.ROOMS_TO_SHOW){
+          const roomNames = JSON.parse(msg.v) as string[]
+          console.log(JSON.stringify(msg))
+          roomNames.forEach(roomName => rooms.get(roomName).show = true)
+        }else if (msg.t === MessageType.REQUEST_ROOM_PROPS){
+          console.log(ev)
+          const room = rooms.get(msg.r)
+          const idx = viewerSocks.findIndex(s => s === sock)
+          if (idx >= 0){
+            viewerSocks.splice(idx, 1)
+            room.socks.push(sock)
+          }
+          console.log(`room:${msg.r} ${room.socks.length} socks.`)
+
+          const rMsg:Message = {t:MessageType.ROOM_PROPS, r:msg.r, p:'', v: JSON.stringify(Array.from(room.properties.entries())) }
+          sock.send(JSON.stringify(rMsg))
+          console.log(JSON.stringify(rMsg))
+        }else if (msg.t === MessageType.ROOM_PROP){
+          const room = rooms.get(msg.r)
+          room.socks.forEach(s => s.send(JSON.stringify(msg)))  //  forward and echo message
+          const prop = JSON.parse(msg.v)  //  update store
+          room.properties.set(prop[0], prop[1])
         }else{
           //  forward message to others
-          sockets.forEach(s => s!==sock && s.send(ev))
+          viewerSocks.forEach(s => s!==sock && s.send(ev))
           if (msg.t===MessageType.UPDATE_PARTICIPANT){
             rooms.get(msg.r).participants.set(msg.p, msg.v)
           }else if (msg.t===MessageType.UPDATE_CONTENTS){
@@ -89,14 +104,23 @@ async function handleWs(sock: WebSocket) {
         console.log("ws:Ping", body);
       } else if (isWebSocketCloseEvent(ev)) {
         // close.
-        const idx = sockets.findIndex(s => s === sock)
-        if (idx >= 0){
-          sockets.splice(idx, 1)
-        }else{
-          console.error('sock to close not found.')
-        }
         const { code, reason } = ev;
-        console.log(`ws:Closed. ${sockets.length} sockets remain`, code, reason);
+        const idx = viewerSocks.findIndex(s => s === sock)
+        if (idx >= 0){
+          viewerSocks.splice(idx, 1)
+          console.log(`ws:Closed. ${viewerSocks.length} viewerSocks remain`, code, reason);
+        }else{
+          let found = false
+          rooms.rooms.forEach((room, name) => {
+            const idx = room.socks.findIndex(s => s === sock)
+            if (idx >= 0){
+              room.socks.splice(idx, 1)
+              console.log(`ws:Closed. room:${name} ${room.socks.length} socks remain`, code, reason);
+              found = true
+            }
+          })
+          if (!found){ console.error('sock to close not found.') }
+        }
       }
     }
   } catch (err) {
