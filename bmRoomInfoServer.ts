@@ -37,6 +37,13 @@ class Rooms{
 }
 const rooms = new Rooms()
 
+function send(s:WebSocket, v:string){
+  try{
+    s.send(v)
+  }catch(e){
+    console.error(e)
+  }
+}
 
 async function handleWs(sock: WebSocket) {
   viewerSocks.push(sock)
@@ -57,10 +64,10 @@ async function handleWs(sock: WebSocket) {
             })
           })
           const msg:Message = { t:MessageType.ALL_INFOS, r:'', p:'', v:JSON.stringify(infos) }
-          sock.send(JSON.stringify(msg))
+          send(sock, JSON.stringify(msg))
         }else if (msg.t === MessageType.CLEAR){
           rooms.clear()
-          viewerSocks.forEach(s => s!==sock && s.send(ev))
+          viewerSocks.forEach(s => s!==sock && send(s, ev))
         }else if (msg.t === MessageType.ROOMS_TO_SHOW){
           const roomNames = JSON.parse(msg.v) as string[]
           console.log(JSON.stringify(msg))
@@ -76,16 +83,16 @@ async function handleWs(sock: WebSocket) {
           console.log(`room:${msg.r} ${room.socks.length} socks.`)
 
           const rMsg:Message = {t:MessageType.ROOM_PROPS, r:msg.r, p:'', v: JSON.stringify(Array.from(room.properties.entries())) }
-          sock.send(JSON.stringify(rMsg))
+          send(sock, JSON.stringify(rMsg))
           console.log(JSON.stringify(rMsg))
         }else if (msg.t === MessageType.ROOM_PROP){
           const room = rooms.get(msg.r)
-          room.socks.forEach(s => s.send(JSON.stringify(msg)))  //  forward and echo message
+          room.socks.forEach(s => send(s, JSON.stringify(msg)))  //  forward and echo message
           const prop = JSON.parse(msg.v)  //  update store
           room.properties.set(prop[0], prop[1])
         }else{
           //  forward message to others
-          viewerSocks.forEach(s => s!==sock && s.send(ev))
+          viewerSocks.forEach(s => s!==sock && send(s, ev))
           if (msg.t===MessageType.UPDATE_PARTICIPANT){
             rooms.get(msg.r).participants.set(msg.p, msg.v)
           }else if (msg.t===MessageType.UPDATE_CONTENTS){
