@@ -1,4 +1,4 @@
 {
-    "port": 8443,
+    "port": 7443,
     "tls": false
 }
