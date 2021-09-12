@@ -39,7 +39,9 @@ const rooms = new Rooms()
 
 function send(s:WebSocket, v:string){
   try{
-    s.send(v)
+    if (!s.isClosed){
+      s.send(v)
+    }
   }catch(e){
     console.error(e)
   }
